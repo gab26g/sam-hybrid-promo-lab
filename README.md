@@ -6,7 +6,7 @@ Local PHP 8.2 OOP + MySQL 8 + Faker + Amazon SQS Standard queues + Mailtrap Emai
 
 Local implementation and live baseline verified. Ten automated tests pass with SQS/SMTP mocked at the external boundaries. Real MySQL 8.4.13 schema checks pass. The population is 10,000 customers (8,000 opted in, 2,000 opted out), with 50 stable, distinct eligible recipients for CAMP-001 / PROMO15. The completed baseline has **50 SENT, zero SKIPPED, zero FAILED**, with 50 complete publication/processing/deletion traces and an empty queue. A live sequential duplicate was skipped and acknowledged without another email.
 
-AWS/IAM/dashboard/alarm/SNS setup is verified. The operator reports completing the disconnected demonstration and screenshots. **Controlled failure/DLQ recovery and final report submission remain in progress.** The live baseline evidence is distinct from the automated tests' simulated sends. Private evidence files and working notes stay out of this repository.
+AWS/IAM/dashboard/alarm/SNS setup is verified. The operator reports completing the disconnected demonstration and screenshots. The controlled malformed request failed three times and reached the DLQ. A corrected recovery request for an opted-out customer was recorded SKIPPED and acknowledged without SMTP; the original DLQ message was then removed and the DLQ verified empty. The operator reports capturing alarm transitions. **Final report assembly, personal reflection and submission remain pending.** The live baseline evidence is distinct from the automated tests' simulated sends. Private evidence files and working notes stay out of this repository.
 
 ## Architecture
 

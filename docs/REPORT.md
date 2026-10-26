@@ -80,11 +80,11 @@ Actual local inspection on October 26, 2026 established:
 
 Repeated generation preserves existing records. Repeated preparation preserves the original recipients, request IDs, and promo code. A local evidence capture records equality and a SHA-256 fingerprint of the stored selection. These operations do not contact SQS or SMTP.
 
-[Insert E02 and E04. Physical disconnected-internet demonstration E03 is still pending; record actual result after performing it.]
+[Insert E02 and E04. The operator reports completing the physically disconnected demonstration and saving its screenshots in the report.]
 
 ## 5. IAM and SQS setup
 
-Region: ap-southeast-2 (Sydney). Planned names: MarketingEmailQueue-gab26g, MarketingEmailDLQ-gab26g, and MarketingLabSQS-gab26g.
+Region: ap-southeast-2 (Sydney). Verified resource names: MarketingEmailQueue-gab26g, MarketingEmailDLQ-gab26g, and MarketingLabSQS-gab26g.
 
 Main queue requirements: Standard; 180-second visibility; four-day retention; 20-second receive wait; DLQ maximum receives three. DLQ retention: 14 days. Application permissions are limited to SendMessage, ReceiveMessage, DeleteMessage, GetQueueAttributes, and GetQueueUrl on the two queue ARNs.
 
@@ -100,11 +100,11 @@ Main ARN: arn:aws:sqs:ap-southeast-2:408852558600:MarketingEmailQueue-gab26g
 
 ## 6. Publishing and processing
 
-**Live publication verified:** At 19:31 Manila time on October 26, 2026, the first publisher run acknowledged 50 requests and the second run acknowledged zero. Local outbox shows 50 QUEUED requests for 50 distinct recipients, with 50 queued log events and unique request IDs. SQS reports 50 available and zero in-flight messages. Processing history is empty and the worker remains stopped for E10 screenshots. No real SMTP submission has occurred yet.
+**Live publication verified:** At 19:31 Manila time on October 26, 2026, the first publisher run acknowledged 50 requests and the second run acknowledged zero. Local outbox shows 50 QUEUED requests for 50 distinct recipients, with 50 queued log events and unique request IDs. SQS reports 50 available and zero in-flight messages. At that publication checkpoint, processing history was empty and the worker was stopped for E10 screenshots; SMTP processing followed afterward.
 
 **Completed baseline:** Processing subsequently finished at approximately 19:54 Manila time: **50 SENT, zero SKIPPED, zero FAILED**. All SENT rows have SMTP acceptance details, all outcomes match their stored request and promo code, and all 50 have ordered queued, received, processing_started, sent and deleted traces. The queue returned to zero available and zero in-flight requests. A later duplicate test at 22:19:45 Manila produced duplicate_skipped followed by deleted, with the baseline staying at 50 SENT and no additional SMTP submission. The operator reports saving E11 screenshots.
 
-Mailtrap account allowance was inspected after sign-in: the Sandbox card and sandbox usage show **0/50 monthly submissions**, leaving 50 for the baseline. Save the usage screenshot as E17. The user subsequently saved SMTP credentials privately, and `php tools/preflight.php smtp` passed: STARTTLS connection and SMTP authentication were accepted. This used connection/authentication only, with no email submission or quota consumption. The real 50-message campaign remains pending.
+Mailtrap account allowance was inspected after sign-in: the Sandbox card and sandbox usage show **0/50 monthly submissions**, leaving 50 for the baseline. Save the usage screenshot as E17. The user subsequently saved SMTP credentials privately, and `php tools/preflight.php smtp` passed: STARTTLS connection and SMTP authentication were accepted. This used connection/authentication only, with no email submission or quota consumption. The subsequent baseline consumed the 50 submissions and completed successfully. No further SMTP submissions were used for diagnostic tests.
 
 Before publishing, capture the dashboard baseline with the worker stopped. After enqueueing, verify 50 QUEUED rows and zero new sends on repeat publication. During processing, trace queued -> received -> processing_started -> sent -> deleted using request, campaign, customer, and SQS identifiers. The MIME Message-ID differs from the SQS MessageId.
 
@@ -114,7 +114,7 @@ Expected baseline: 50 SENT for the selected customers with PROMO15, no unresolve
 
 ## 7. Monitoring
 
-**Cloud configuration verified:** MarketingLab-gab26g has all four required widgets, correct queue dimensions and Sydney Region, 60-second periods, Sum for operation counts, and Maximum for backlog/age. Both alarms have the required queue/metric, Maximum statistic, one-minute period, one-of-one evaluation, missing data not breaching, and enabled notification actions to MarketingLabAlerts-gab26g. Both were OK at inspection. The SNS topic's single EMAIL subscription is Confirmed. Live processing trends and incident notification delivery are still pending. See AWS-SETUP-VERIFIED.md for the configuration verification record.
+**Cloud configuration verified:** MarketingLab-gab26g has all four required widgets, correct queue dimensions and Sydney Region, 60-second periods, Sum for operation counts, and Maximum for backlog/age. Both alarms have the required queue/metric, Maximum statistic, one-minute period, one-of-one evaluation, missing data not breaching, and enabled notification actions to MarketingLabAlerts-gab26g. Both were OK at inspection. The SNS topic's single EMAIL subscription is Confirmed. The operator subsequently saved live processing and DLQ alarm screenshots. The operator confirmed receipt of the SNS alarm email and saved its screenshot. See AWS-SETUP-VERIFIED.md for the configuration verification record.
 
 The dashboard combines main queue send/receive/delete operation counts, visible/in-flight backlog, oldest-message age, and DLQ visible backlog. Counts use Sum; backlog and age use Maximum, with one-minute periods. Age uses a separate seconds widget. The DLQ alarm triggers at at least one visible message; the backlog alarm triggers at an age of at least 300 seconds. Both use one evaluation period and missing data as not breaching. Record confirmed SNS notification evidence or the actual classroom restriction.
 
@@ -124,20 +124,21 @@ CloudWatch counts are approximate operational indicators. Database history estab
 
 ## 8. Incident record
 
-**Incident execution: PENDING.** Do not describe the expected sequence below as an observed result.
+**Incident executed October 26, 2026.** The malformed request was rejected three times, reached the DLQ, and was removed only after a corrected consent test passed.
 
-| Field | Record after the actual test |
+| Field | Observed result |
 |---|---|
-| Detection | [UTC timestamp, processing_failed event, DLQ metric/alarm] |
-| Identification | [SQS MessageId; malformed payload lacks requestId/customerId/promoCode] |
-| Symptoms and impact | [Retries, no email submission, whether other work continued] |
-| Root cause | Missing required job fields; attach actual validation/log evidence. |
-| Corrective action | Submit a complete new CAMP-RECOVERY request for opted-out CUST-08001. Do not redrive the unchanged invalid payload. |
-| Recovery evidence | [SKIPPED reason, deleted event, original malformed DLQ message removed after verification, backlog zero, alarm OK] |
-| Prevention | Validate producer payloads before publication and retain structured phase/identifier logs alongside the DLQ alarm. |
+| Detection | processing_failed at 22:31:42, 22:34:42 and 22:37:42 Manila (UTC+8), each with InvalidArgumentException. |
+| Identification | SQS MessageId 7cfab93c-acb5-49bc-93c8-b978b6548dd1; campaign CAMP-BROKEN; missing requestId, customerId and promoCode. |
+| Symptoms and impact | Receive counts 1, 2 and 3, with no successful acknowledgment or SMTP submission. The completed CAMP-001 baseline remained at 50 SENT. |
+| Root cause | Deliberately incomplete producer payload failed required-field validation before customer lookup or SMTP. |
+| DLQ and alert | Read-only SQS verification found 1 available DLQ message. The operator reports saving the DLQ and ALARM screenshots. Operator confirmed receiving the SNS alarm email and saving its screenshot. |
+| Corrective action | Submitted complete CAMP-RECOVERY request 7d5e375e2ff303d49a34eb7dfefb9f6d for opted-out CUST-08001; did not redrive the unchanged invalid message. |
+| Recovery | At 22:47:44 Manila the worker recorded SKIPPED with marketing_consent_absent, then deleted message b080f5cf-9da8-4b78-a07a-4fa0998ebd70. Database history confirms one SKIPPED outcome; no recovery sent event exists. |
+| Cleanup | Operator removed the original malformed DLQ message after recovery. Read-only API verification confirmed 0 available and 0 in-flight DLQ messages. Operator reports saving the return-to-OK screenshot. |
+| Prevention | Validate producer payloads before publication; retain correlated validation events and the DLQ alarm. |
 
-[Insert E13-E14. Keep diagnostic outcomes separate from the 50 SENT baseline.]
-
+[Insert E13a submission, E13b DLQ, E13c ALARM, E14a corrected request, E14b recovery summary, E14c empty DLQ and E14d alarm OK.]
 ## 9. Test results
 
 | Test/action | Expected result | Actual result | Evidence |
@@ -147,13 +148,13 @@ CloudWatch counts are approximate operational indicators. Database history estab
 | Repeat generation | No extra records; existing values preserved | PASS automated and repeated local run | E02, E15 |
 | Physically offline generation/inspection | Same counts without internet | Operator reports disconnected demonstration and screenshots completed; attach evidence | E03 |
 | Random eligible selection | 50 distinct, zero ineligible | PASS on actual database | E04 |
-| Repeat and offline preparation | Same IDs/code; 50 PENDING; no network calls | Stable local repeat PASS; physical offline evidence PENDING | E03-E04 |
+| Repeat and offline preparation | Same IDs/code; 50 PENDING; no network calls | Stable local repeat PASS; operator reports saving disconnected demonstration | E03-E04 |
 | Publish and repeat | 50 QUEUED, second run sends zero | PASS live: first run 50, repeat 0, queue visible 50/in-flight 0 | E10, E15 |
 | Process campaign | 50 SENT with promo, correct acknowledgments | PASS live: 50 SENT, zero SKIPPED/FAILED, all 50 ordered traces, queue empty | E11, E15 |
 | Sequential duplicate | duplicate_skipped, deleted, no SMTP | PASS live at 22:19:45 Manila: duplicate skipped and deleted; baseline stayed 50 SENT; queue empty | E12, E15 |
 | SMTP and delete failure behavior | Retry without premature acknowledgment or repeat terminal send | PASS with simulated external failures | E15 |
-| Invalid message and DLQ | Retries, DLQ arrival and alarm | Local invalid rejection PASS; live PENDING | E13, E15 |
-| Recovery and consent | Opted-out SKIPPED, acknowledgment, no SMTP, incident cleared | Mocked behavior PASS; live PENDING | E14, E15 |
+| Invalid message and DLQ | Retries, DLQ arrival and alarm | PASS live: three validation failures, DLQ arrival; operator saved alarm evidence | E13, E15 |
+| Recovery and consent | Opted-out SKIPPED, acknowledgment, no SMTP, incident cleared | PASS live: one SKIPPED, deleted, no SMTP; DLQ empty after cleanup; operator reports alarm OK | E14, E15 |
 | Log privacy | No payload content, credentials, or malformed PII identifiers | PASS automated regression | E15 |
 
 The automated suite currently reports **10 tests, zero failures**. Separate real-server tests verify schema constraints and stable selection in marketing_lab_test. Neither result substitutes for live AWS, Mailtrap, or physically offline evidence.
