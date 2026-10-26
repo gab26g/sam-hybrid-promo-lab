@@ -1,0 +1,11 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": ["sqs:SendMessage", "sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes", "sqs:GetQueueUrl"],
+    "Resource": [
+      "arn:aws:sqs:ap-southeast-2:YOUR_ACCOUNT_ID:MarketingEmailQueue-gab26g",
+      "arn:aws:sqs:ap-southeast-2:YOUR_ACCOUNT_ID:MarketingEmailDLQ-gab26g"
+    ]
+  }]
+}

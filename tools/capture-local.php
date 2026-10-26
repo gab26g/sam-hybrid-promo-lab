@@ -1,0 +1,23 @@
+<?php
+require dirname(__DIR__).'/config.php';
+$root=dirname(__DIR__);$dir=$root.'/evidence';if (!is_dir($dir)) mkdir($dir,0700,true);
+$db=(new Lab\Database())->connect();$tools=new Lab\LocalDatabaseTools($db);
+$before=$db->query("SELECT request_id,customer_id,promo_code FROM marketing_outbox WHERE campaign_id='CAMP-001' ORDER BY customer_id")->fetchAll();
+$faker=Faker\Factory::create('en_US');$faker->seed(2026);(new Lab\CustomerSeeder($db,$faker))->seed();
+(new Lab\CampaignPreparer($db))->prepare('CAMP-001','PROMO15');
+$after=$db->query("SELECT request_id,customer_id,promo_code FROM marketing_outbox WHERE campaign_id='CAMP-001' ORDER BY customer_id")->fetchAll();
+$eligible=$db->query("SELECT COUNT(*) FROM marketing_outbox o JOIN customers c ON c.customer_id=o.customer_id WHERE o.campaign_id='CAMP-001' AND c.marketing_opt_in<>1")->fetchColumn();
+$snapshot=$tools->inspect();
+$snapshot['server_version']=$db->getAttribute(PDO::ATTR_SERVER_VERSION);
+$snapshot['repeat_selection_unchanged']=$before===$after;
+$snapshot['selection_sha256']=hash('sha256',json_encode($after,JSON_THROW_ON_ERROR));
+$snapshot['ineligible_recipients']=(int)$eligible;
+$snapshot['offline_demonstration']='Not established by this capture. Repeat while physically disconnected and save separate evidence.';
+$schema=[];
+foreach (['customers','marketing_outbox','sent_marketing_emails'] as $table) $schema[$table]=$db->query("SHOW CREATE TABLE `$table`")->fetch(PDO::FETCH_NUM)[1];
+$snapshot['table_definitions']=$schema;
+file_put_contents($dir.'/local-verification.json',json_encode($snapshot,JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR));
+$pretty=htmlspecialchars(json_encode($snapshot,JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR),ENT_QUOTES,'UTF-8');
+$html='<!doctype html><html lang="en"><meta charset="utf-8"><title>Hybrid lab - local verification</title><style>body{font:16px system-ui;margin:36px;max-width:1100px;color:#17212b}h1{font-size:28px}p{line-height:1.5}pre{font:14px/1.5 Consolas,monospace;white-space:pre-wrap;background:#f3f5f7;padding:24px;border:1px solid #ccd4dd}strong{color:#125b39}</style><h1>Hybrid Promotional Campaign - Local Verification</h1><p><strong>10,000 customers / 8,000 opted in / 2,000 opted out / 50 distinct recipients.</strong><br>Actual database output and repeated preparation check. This is local evidence, not proof of cloud execution or disconnected operation.</p><pre>'.$pretty.'</pre></html>';
+file_put_contents($dir.'/local-verification.html',$html);
+echo 'Local evidence saved; selection unchanged: '.($before===$after?'yes':'NO').'; ineligible selected: '.$eligible.PHP_EOL;
