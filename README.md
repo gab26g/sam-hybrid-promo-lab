@@ -4,9 +4,9 @@ Local PHP 8.2 OOP + MySQL 8 + Faker + Amazon SQS Standard queues + Mailtrap Emai
 
 ## Current verified state
 
-Local implementation complete. Ten automated tests pass with SQS/SMTP mocked at the external boundaries. Real MySQL 8.4.13 schema checks pass. Local baseline population is 10,000 customers (8,000 opted in, 2,000 opted out), with 50 stable, distinct, eligible PENDING requests for CAMP-001 / PROMO15.
+Local implementation and live baseline verified. Ten automated tests pass with SQS/SMTP mocked at the external boundaries. Real MySQL 8.4.13 schema checks pass. The population is 10,000 customers (8,000 opted in, 2,000 opted out), with 50 stable, distinct eligible recipients for CAMP-001 / PROMO15. The completed baseline has **50 SENT, zero SKIPPED, zero FAILED**, with 50 complete publication/processing/deletion traces and an empty queue. A live sequential duplicate was skipped and acknowledged without another email.
 
-**Live AWS/Mailtrap campaign, offline disconnection demonstration, failure/DLQ recovery, and final report submission still require evidence.** Automated simulated sends do not establish real SMTP acceptance.
+AWS/IAM/dashboard/alarm/SNS setup is verified. The operator reports completing the disconnected demonstration and screenshots. **Controlled failure/DLQ recovery and final report submission remain in progress.** The live baseline evidence is distinct from the automated tests' simulated sends. Private evidence files and working notes stay out of this repository.
 
 ## Architecture
 

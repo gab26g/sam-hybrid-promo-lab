@@ -20,5 +20,6 @@ Save screenshots locally under evidence/. Keep passwords, keys, tokens, and SMTP
 | E14 | Recovery SKIPPED, deleted, DLQ zero, alarm OK | A corrected opted-out diagnostic request is acknowledged without SMTP; the original malformed incident is then cleared. | Pending |
 | E15 | Tests and source review | Ten automated workflow tests and real MySQL schema checks pass; external sends are mocked in the automated suite. | Text output captured locally |
 | E16 | Repository and document access | The instructor can open the completed source repository and report. | Pending |
+| E17 | Mailtrap Home Sandbox card or Sandboxes usage | Monthly sandbox usage is 0 out of 50, leaving exactly 50 submissions for the baseline campaign. | Verified in signed-in Mailtrap; user screenshot requested before SMTP setup |
 
 The local verification HTML is a readable view of actual captured database output. It explicitly marks disconnected operation and cloud execution as unverified.

@@ -16,5 +16,5 @@ foreach ($name in @('MAILTRAP_USERNAME','MAILTRAP_PASSWORD')) {
     if ($secure.Length -gt 0) { $settings[$name] = [System.Net.NetworkCredential]::new('', $secure).Password }
 }
 New-Item -ItemType Directory -Force -Path (Split-Path $path -Parent) | Out-Null
-$settings | ConvertTo-Json | Set-Content -LiteralPath $path -Encoding utf8NoBOM
+[System.IO.File]::WriteAllText($path, ($settings | ConvertTo-Json), [System.Text.UTF8Encoding]::new($false))
 Write-Host 'Saved private local settings. Credential values were not printed.'

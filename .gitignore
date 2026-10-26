@@ -11,3 +11,4 @@
 *.pem
 *.key
 *credentials*
+/docs/progress.md

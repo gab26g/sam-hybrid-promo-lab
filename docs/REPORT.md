@@ -88,13 +88,23 @@ Region: ap-southeast-2 (Sydney). Planned names: MarketingEmailQueue-gab26g, Mark
 
 Main queue requirements: Standard; 180-second visibility; four-day retention; 20-second receive wait; DLQ maximum receives three. DLQ retention: 14 days. Application permissions are limited to SendMessage, ReceiveMessage, DeleteMessage, GetQueueAttributes, and GetQueueUrl on the two queue ARNs.
 
-**Actual setup / approved identity:** PENDING. The console identity observed was sam10-sqs-user; an existing local payroll profile identifies a different deployer and is not assumed to be the restricted lab application identity.
+**Actual queue setup:** User created MarketingEmailQueue-gab26g. Read-only console inspection verified Standard type, SSE-SQS encryption, owner-restricted resource policy, four-day retention, 180-second visibility (displayed as 3 Minutes), 20-second receive wait, and zero delivery delay. Its dead-letter target is arn:aws:sqs:ap-southeast-2:408852558600:MarketingEmailDLQ-gab26g, with maximum receives 3. Available, in-flight and delayed message counts were all zero at inspection. A subsequent read-only API check verified the DLQ retention as 14 days.
+
+Main URL: https://sqs.ap-southeast-2.amazonaws.com/408852558600/MarketingEmailQueue-gab26g
+
+Main ARN: arn:aws:sqs:ap-southeast-2:408852558600:MarketingEmailQueue-gab26g
+
+**Verified application identity:** Local AWS profile marketing-lab resolves to arn:aws:iam::408852558600:user/marketing-lab-gab26g and successfully inspects both queues. IAM console confirms console access disabled and the customer-managed MarketingLabSQS-gab26g policy attached directly, containing exactly the five required SQS actions and only the two queue ARNs. The older payroll profile is not used by this application. DLQ retention is independently verified as 14 days, and both queues were empty at inspection.
 
 [Insert E05-E07; record the actual queue URL/ARNs and approved profile arrangement, with no credentials.]
 
 ## 6. Publishing and processing
 
-**Live result: PENDING.** No real SMTP submission has been established by the local tests.
+**Live publication verified:** At 19:31 Manila time on October 26, 2026, the first publisher run acknowledged 50 requests and the second run acknowledged zero. Local outbox shows 50 QUEUED requests for 50 distinct recipients, with 50 queued log events and unique request IDs. SQS reports 50 available and zero in-flight messages. Processing history is empty and the worker remains stopped for E10 screenshots. No real SMTP submission has occurred yet.
+
+**Completed baseline:** Processing subsequently finished at approximately 19:54 Manila time: **50 SENT, zero SKIPPED, zero FAILED**. All SENT rows have SMTP acceptance details, all outcomes match their stored request and promo code, and all 50 have ordered queued, received, processing_started, sent and deleted traces. The queue returned to zero available and zero in-flight requests. A later duplicate test at 22:19:45 Manila produced duplicate_skipped followed by deleted, with the baseline staying at 50 SENT and no additional SMTP submission. The operator reports saving E11 screenshots.
+
+Mailtrap account allowance was inspected after sign-in: the Sandbox card and sandbox usage show **0/50 monthly submissions**, leaving 50 for the baseline. Save the usage screenshot as E17. The user subsequently saved SMTP credentials privately, and `php tools/preflight.php smtp` passed: STARTTLS connection and SMTP authentication were accepted. This used connection/authentication only, with no email submission or quota consumption. The real 50-message campaign remains pending.
 
 Before publishing, capture the dashboard baseline with the worker stopped. After enqueueing, verify 50 QUEUED rows and zero new sends on repeat publication. During processing, trace queued -> received -> processing_started -> sent -> deleted using request, campaign, customer, and SQS identifiers. The MIME Message-ID differs from the SQS MessageId.
 
@@ -104,7 +114,7 @@ Expected baseline: 50 SENT for the selected customers with PROMO15, no unresolve
 
 ## 7. Monitoring
 
-**Cloud configuration and live evidence: PENDING.** Dashboard and alarms are described in AWS-HANDS-ON.md.
+**Cloud configuration verified:** MarketingLab-gab26g has all four required widgets, correct queue dimensions and Sydney Region, 60-second periods, Sum for operation counts, and Maximum for backlog/age. Both alarms have the required queue/metric, Maximum statistic, one-minute period, one-of-one evaluation, missing data not breaching, and enabled notification actions to MarketingLabAlerts-gab26g. Both were OK at inspection. The SNS topic's single EMAIL subscription is Confirmed. Live processing trends and incident notification delivery are still pending. See AWS-SETUP-VERIFIED.md for the configuration verification record.
 
 The dashboard combines main queue send/receive/delete operation counts, visible/in-flight backlog, oldest-message age, and DLQ visible backlog. Counts use Sum; backlog and age use Maximum, with one-minute periods. Age uses a separate seconds widget. The DLQ alarm triggers at at least one visible message; the backlog alarm triggers at an age of at least 300 seconds. Both use one evaluation period and missing data as not breaching. Record confirmed SNS notification evidence or the actual classroom restriction.
 
@@ -135,12 +145,12 @@ CloudWatch counts are approximate operational indicators. Database history estab
 | Local schema constraints | Correct keys, consent and status restrictions | PASS on actual MySQL 8.4.13 | E01, E15 |
 | Population generation | 10,000 / 8,000 opted in / 2,000 opted out | PASS locally | E02 |
 | Repeat generation | No extra records; existing values preserved | PASS automated and repeated local run | E02, E15 |
-| Physically offline generation/inspection | Same counts without internet | PENDING physical demonstration | E03 |
+| Physically offline generation/inspection | Same counts without internet | Operator reports disconnected demonstration and screenshots completed; attach evidence | E03 |
 | Random eligible selection | 50 distinct, zero ineligible | PASS on actual database | E04 |
 | Repeat and offline preparation | Same IDs/code; 50 PENDING; no network calls | Stable local repeat PASS; physical offline evidence PENDING | E03-E04 |
-| Publish and repeat | 50 QUEUED, second run sends zero | Mocked behavior PASS; live PENDING | E10, E15 |
-| Process campaign | 50 SENT with promo, correct acknowledgments | Mocked behavior PASS; live PENDING | E11, E15 |
-| Sequential duplicate | duplicate_skipped, deleted, no SMTP | Mocked behavior PASS; live PENDING | E12, E15 |
+| Publish and repeat | 50 QUEUED, second run sends zero | PASS live: first run 50, repeat 0, queue visible 50/in-flight 0 | E10, E15 |
+| Process campaign | 50 SENT with promo, correct acknowledgments | PASS live: 50 SENT, zero SKIPPED/FAILED, all 50 ordered traces, queue empty | E11, E15 |
+| Sequential duplicate | duplicate_skipped, deleted, no SMTP | PASS live at 22:19:45 Manila: duplicate skipped and deleted; baseline stayed 50 SENT; queue empty | E12, E15 |
 | SMTP and delete failure behavior | Retry without premature acknowledgment or repeat terminal send | PASS with simulated external failures | E15 |
 | Invalid message and DLQ | Retries, DLQ arrival and alarm | Local invalid rejection PASS; live PENDING | E13, E15 |
 | Recovery and consent | Opted-out SKIPPED, acknowledgment, no SMTP, incident cleared | Mocked behavior PASS; live PENDING | E14, E15 |
@@ -156,7 +166,7 @@ The automated suite currently reports **10 tests, zero failures**. Separate real
 
 ### GitHub Repository
 
-[Paste the verified repository URL here after publication.]
+https://github.com/gab26g/sam-hybrid-promo-lab
 
 ## Final submission reminders
 
